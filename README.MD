@@ -29,7 +29,7 @@ Additionally, the extracted data is utilized in Looker Studio dashboards to gain
 ## Video Tutorials
 -[Watch Video Tutorial how to extract events data](https://youtu.be/1cKc1VzYlpI)
 
--[Watch Video Tutorial how to clone google calendar tool](https://youtu.be/jfdt8V68hUs)
+-[Watch Video Tutorial how to clone google calendar tool](https://youtu.be/eW7maJzxtHI)
 
 -[Watch Video Tutorial how to clone looker studio dashboard](https://youtu.be/jfdt8V68hUs)
 
