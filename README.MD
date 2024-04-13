@@ -12,6 +12,7 @@ Additionally, the extracted data is utilized in Looker Studio dashboards to gain
 - **Google Sheets Integration**: Stores the extracted event data in a Google Sheets spreadsheet.
 - **Accountability Tracking**: Tracks event creators and their last modifications.
 - **Looker Studio Dashboard Integration**: Utilizes the extracted data in Looker Studio dashboards to gain insights.
+- **Daily Script Trigger**: Automatically runs a Google Apps Script on a daily basis to extract data and feed the Looker Studio dashboard.
 
 ## Flow Chart
 ![Flow Chart](https://i.ibb.co/wrKRm63/diagrama-drawio-2.png)
@@ -26,225 +27,139 @@ Additionally, the extracted data is utilized in Looker Studio dashboards to gain
   - Calendar 4: [Link](https://calendar.google.com/calendar/embed?src=9a9705841364b5ad8216b3ad6ef461ac7747f0e27841e26de539244dfe219863%40group.calendar.google.com&ctz=America%2FNew_York)
 
 ## Video Tutorials
--[Watch Video Tutorial how to select and create events](https://youtu.be/yZUaAZnF0N4)
+-[Watch Video Tutorial how to extract events data](https://youtu.be/1cKc1VzYlpI)
 
--[Watch Video Tutorial how to clone crm tool](https://youtu.be/jfdt8V68hUs)
+-[Watch Video Tutorial how to clone google calendar tool](https://youtu.be/jfdt8V68hUs)
+
+-[Watch Video Tutorial how to clone looker studio dashboard](https://youtu.be/jfdt8V68hUs)
 
 ## Getting Started
 
 ### Setup Instructions
-1. **Clone the Google Sheet**: Make a copy of the [Google Sheet template](https://docs.google.com/spreadsheets/d/1_gCUcBLbO2BsPPunIUigJN8JzGDVv4WtyhBUIf-ewWI/edit?usp=sharing) provided.
+1. **Clone the Google Sheet**: Make a copy of the [Google Sheet template](https://docs.google.com/spreadsheets/d/1liepeB7uZDuwKyq3wZjjSy8qKixTkjxBZEPDTHuq7YM/edit?usp=sharing) provided.
 2. **Enable Google Apps Script**: In the Google Sheet, go to `Extensions` > `Apps Script` and enable scripts.
 3. **Set Up Triggers**:
     - Go to `Edit` > `Current project's triggers` in Apps Script.
     - Click on `Add Trigger`.
     - Select the following options:
         - Choose which function to run: `checkCalendar`
-        - Choose which deployment should run: `Head`
-        - Select event source: `From spreadsheet`
-        - Select event type: `On edit`
+        - Choose which deployment should run: `Time-driven`
+        - Select event source: `Day timer`
+        - Select event type: `select timeframe of your preference`
+        - Repeat the step number 3 with the function `copyDataToSheet2`
 4. **Authorize Access**: Authorize necessary permissions for the script to function properly.
 5. **Configure Looker Studio Integration**: [Instructions on integrating with Looker Studio].
 
 ## Support
-For any questions or issues, please contact [Your Contact Information].
+For any questions or issues, please contact [here](https://github.com/0xrphl/Google-calendar-events-analysis-Google-sheets-Google-App-Scripts-Looker-Studio-/issues/new).
 
-## Explanation of checkCalendar() Function
-The `checkCalendar()` function is responsible for checking Google Calendar for events created based on the data entered into the Google Sheet. Here's how it works:
+# Calendar Data Extraction Script
 
-```javascript
-function checkCalendar() {
-  // Get the active sheet
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Google Calendar and SMS tool");
-  var range = sheet.getDataRange();
-  var values = range.getValues();
-  var long = (SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Google Calendar and SMS tool").getRange(2,9).getValue()) + 1;
+This script is designed to extract calendar data from multiple Google calendars and populate a Google Spreadsheet with the extracted information.
 
-  // Loop through each row of the spreadsheet
-  for (var i = 4; i < long + 3; i++) {
-    var row = i + 1;
-    var date = values[i][6]; // Adjusted column index for date
-    var name = values[i][3]; // Adjusted column index for name
-    var calendarId = "";  // Default calendar ID
-
-    var calendarValue = values[i][8]; // Adjusted column index for calendar
-
-    // Determine the calendar ID based on the value in the specified column
-    if (calendarValue == "New York Office") {
-      calendarId = "6a430b5ee8f9ea5a8237e8fe82533d7c8505e896edbaa5880c86ef117830b933@group.calendar.google.com"; 
-    } else if (calendarValue == "Dallas Office") {
-      calendarId = "d69f1c80512b7def2cf17d9edf8e5da3c83eb44b334c7a7f050cf38640f8f244@group.calendar.google.com";
-    } else if (calendarValue == "Boston Office") {
-      calendarId = "53d4f063c5cbd84330fd1a7e18074754ad149afce51c04bf1472aaa17102aefa@group.calendar.google.com";
-    } else if (calendarValue == "Virtual Consultation") {
-      calendarId = "9a9705841364b5ad8216b3ad6ef461ac7747f0e27841e26de539244dfe219863@group.calendar.google.com";
-    } 
-
-    // Get events from the specified calendar for the given date and name
-    var events = CalendarApp.getCalendarById(calendarId).getEventsForDay(new Date(date), {search: name});
-    Logger.log('Number of events: ' + events.length + ' - ' + name + ' - ' + date);
-
-    // Update spreadsheet with event status based on the presence of events
-    if (events.length != 0) {
-      sheet.getRange(row, 22).setValue('Event Created'); // Adjusted column index for status
-      sheet.getRange(row, 21).setValue(false); // Adjusted column index for checkbox
-    } else {
-      sheet.getRange(row, 22).setValue('Creation Pending'); // Adjusted column index for status
-    }
-  }
-
-  // Clear status column for rows beyond the length
-
-```
-
-## Explanation of createCalendarEvents() Function
-The `createCalendarEvents()` function creates events in Google Calendar based on the data entered into the Google Sheet. Here's how it works:
+## Script Explanation
 
 ```javascript
-function createCalendarEvents() {
-  var sheet = SpreadsheetApp.getActiveSheet(); // Get active sheet
-  var range = sheet.getDataRange(); // Get the range of data
-  var values = range.getValues(); // Get values from the range
+function CalendarDataExtractionScript() {
+  // Set configuration variables
+  var sheetName = "Calendars data extraction tool"; // Name of the target sheet
+  var cellToUpdate = "E2"; // Cell to update with today's date
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName); // Get the target sheet
   
-  for (var i = 4; i < values.length; i++) { // Loop through each row starting from 5th row (index 4)
-    var row = i + 1; // Current row number
-    var tickBox = sheet.getRange(row, 21).getValue(); // Get value of tickbox in the row
-    var calendarId = "c_e84f80024a2ad3b161a1a115d578b2eb0c2a6c42be2fffdf2e0d41fbcd76242b@group.calendar.google.com"; // Default calendar ID
+  // Get today's date and format it
+  var today = new Date();
+  var formattedDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "MM/dd/yyyy");
+  
+  // Set the formatted date in the specified cell
+  sheet.getRange(cellToUpdate).setValue(formattedDate);
+  
+  // Clear existing data in the specified range
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getActiveSheet();
+  sheet.getRange("A5:11000").clear(); // Adjusted range for the new "Calendar" column and the variable name column
 
-    if (tickBox) { // If tickbox is checked
-      var eventDate = values[i][6]; // Get event date from the row
-      var eventTime = values[i][11]; // Get event time from the row
-      var eventTitle = "Initial Consultation - " + values[i][10] + " - " + values[i][7]; // Generate event title
-      var eventDescription = "-<b> Name of the caller(lead): </b> " + values[i][3] +  "\n" + ...; // Generate event description
-      var calendarValue = values[i][8]; // Get calendar value from the row
-      var dateString = Utilities.formatDate(eventDate, "GMT", "yyyy-MM-dd"); // Format event date as string
-      var timeString = eventTime.getHours() + ":" + eventTime.getMinutes() + ":" + eventTime.getSeconds(); // Format event time as string
-      var dateTimeString = dateString + " " + timeString; // Concatenate date and time strings
-      var today = new Date(); // Get current date
-      var start = new Date(dateTimeString); // Create start date object
-      var end = new Date(start.getTime() + (30 * 60000)); // Create end date object
-      var oneDayAhead = new Date(today); // Get date one day ahead
-      oneDayAhead.setDate(oneDayAhead.getDate() + 1); // Set date one day ahead
-      
-      // Construct SMS message
-      var to = values[i][4]; // Recipient phone number
-      var body = ""; // SMS body
-      var scheduled_at = new Date(eventDate.getTime()); // Get event date as timestamp
-      scheduled_at.setTime(scheduled_at.getTime() - (60 * 60 * 1000)); // Adjust timestamp
-      
-      // Set calendar ID based on location
-      if (calendarValue == "New York Office") {
-        calendarId = "6a430b5ee8f9ea5a8237e8fe82533d7c8505e896edbaa5880c86ef117830b933@group.calendar.google.com"; 
-        eventTitle += " - New York Office In person"; // Append location to event title
-      } 
-      // Additional if conditions for other office locations
-      
-      // If virtual consultation, modify event title and description
-      if (calendarValue == "Virtual Consultation") {
-        calendarId = "9a9705841364b5ad8216b3ad6ef461ac7747f0e27841e26de539244dfe219863@group.calendar.google.com"; 
-        eventTitle += " - Virtual ZOOM"; // Append "Virtual ZOOM" to event title
-        eventTitle += " - " + values[i][0]; // Append event ID to event title
-        eventDescription +=  "\n" +  "\n" + "Zoom link https://us02web.zoom.us/j/example?pwd=example21432sd" +  "\n" + "Meeting ID: xxxyyyxxx12" +  "\n" + "Passcode: 225478"; // Add Zoom link to event description   
-      } 
+  // Fetch start and end dates from the sheet
+  var startDateCell = sheet.getRange("C2").getValue();
+  var endDateCell = sheet.getRange("E2").getValue();
 
-      // Send SMS messages based on language
-      if (values[i][2] === "SPA") {
-        // Construct SMS message in Spanish
-      } 
-      if (values[i][2] === "ENG") {
-        // Construct SMS message in English
-      }  
-      
-      eventDescription +=  "\n" +  "\n" +  "*Event Created By Virtual Assistant. " + values[i][9]; // Add creator information to event description
-      var calendar = CalendarApp.getCalendarById(calendarId); // Get calendar by ID
-      var event = calendar.createEvent(eventTitle, start, end, {description: eventDescription}); // Create event in calendar
-      Logger.log('Event ID: ' + event.getId()); // Log event ID
-      sheet.getRange(row, 21).setValue(false); // Reset tickbox value
-      sheet.getRange(row, 22).setValue('Event Created'); // Set status to "Event Created"
-    }
+  // Validate date format
+  if (!startDateCell || !endDateCell || !(startDateCell instanceof Date) || !(endDateCell instanceof Date)) {
+    Logger.log("Invalid date format in C1 or E1 cell. Please enter valid dates (YYYY-MM-DD).");
+    return;
   }
+
+  // Convert start and end dates to Date objects
+  var startDate = new Date(startDateCell);
+  var endDate = new Date(endDateCell);
+  endDate.setDate(endDate.getDate() + 1);
+
+  // Get the last row index and calculate the starting row for appending new data
+  var lastRow = sheet.getLastRow();
+  var startRow = lastRow + 1;
+
+  // Define calendar IDs and names
+  var calendarIds = {
+    "9a9705841364b5ad8216b3ad6ef461ac7747f0e27841e26de539244dfe219863@group.calendar.google.com": "Virtual Consultations Calendar",
+    "53d4f063c5cbd84330fd1a7e18074754ad149afce51c04bf1472aaa17102aefa@group.calendar.google.com": "Boston Consultations Calendar",
+    "d69f1c80512b7def2cf17d9edf8e5da3c83eb44b334c7a7f050cf38640f8f244@group.calendar.google.com": "Dallas Consultations Calendar",
+    "6a430b5ee8f9ea5a8237e8fe82533d7c8505e896edbaa5880c86ef117830b933@group.calendar.google.com": "New York Consultations Calendar"
+  };
+
+  // Array to hold extracted data
+  var data = [];
+  
+  // Fetch events from each calendar and populate the data array
+  var calendars = [CalendarApp.getCalendarById(Object.keys(calendarIds)[0]), CalendarApp.getCalendarById(Object.keys(calendarIds)[1]), CalendarApp.getCalendarById(Object.keys(calendarIds)[2]), CalendarApp.getCalendarById(Object.keys(calendarIds)[3])];
+
+  calendars.forEach(function(calendar, index) {
+    var calendarId = Object.values(calendarIds)[index];
+    var events = calendar.getEvents(startDate, endDate);
+
+    events.forEach(function(event) {
+      var title = event.getTitle();
+      var start = event.getStartTime();
+      var end = event.getEndTime();
+      var creator = event.getCreators().join(", ");
+      var lastUpdated = event.getLastUpdated();
+      var firstCreated = event.getDateCreated();
+      var description = event.getDescription();
+
+      // Push event data to the data array
+      data.push([title, start, end, creator, lastUpdated, firstCreated, description, calendarId]);
+    });
+  });
+
+  // Sort data array by start time
+  data.sort(function(a, b) {
+    return a[1] - b[1];
+  });
+
+  // Populate the spreadsheet with the sorted data
+  sheet.getRange(5, 1, data.length, data[0].length).setValues(data);
 }
 ```
 
-## Explanation of sendTextMessage() and scheduleTextUsMessage() Function
-The sendTextMessage() and scheduleTextUsMessage() sends the template created to the SMS API to send consultation confirmation and schedule reminders for the client
+## Explanation of copyDataToSheet2() Function
+The `copyDataToSheet2()` function export every day all the events from the office calendars to the database that feeds the looker studio dashboard
 
 ```javascript
-// Function to send a text message using the TextUS API
-function sendTextMessage(to, body) {
-  var apiKey = 'TextUS API Token'; // Your TextUS API token
-  var url = 'https://next.textus.com//messages'; // API endpoint for sending messages
+function copyDataToSheet2() {
+  // Get active spreadsheet and source & target sheets
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sourceSheet = ss.getSheetByName("Calendars data extraction tool"); // Source sheet
+  var targetSheet = ss.getSheetByName("Looker data"); // Target sheet
 
-  // Construct message data
-  var messageData = {
-    to: to, // Recipient phone number
-    body: body // Message body
-  };
+  // Get data range from source sheet
+  var sourceRange = sourceSheet.getRange("A2:H");
 
-  // Set options for the HTTP request
-  var options = {
-    method: 'post', // HTTP method
-    contentType: 'application/json', // Content type
-    headers: {
-      'Accept': 'application/vnd.textus+jsonld', // Accept header
-      'Authorization': 'Bearer ' + apiKey // Authorization header with API token
-    },
-    payload: JSON.stringify(messageData) // Convert message data to JSON string
-  };
+  // Get values from the range
+  var data = sourceRange.getValues();
 
-  try {
-    // Make the HTTP request to send the message
-    var response = UrlFetchApp.fetch(url, options);
+  // Get the dimensions of the source range
+  var numRows = sourceRange.getNumRows();
+  var numCols = sourceRange.getNumColumns();
 
-    // Get response status code
-    var statusCode = response.getResponseCode();
-
-    // Log success message if status code indicates success
-    if (statusCode == 201 || statusCode == 202) {
-      Logger.log('Message sent successfully.');
-    } else {
-      // Log error message if status code indicates failure
-      var responseText = response.getContentText();
-      Logger.log('Failed to send message. Status code: ' + statusCode + ', Response: ' + responseText);
-    }
-  } catch (error) {
-    // Log error if an exception occurs during the request
-    Logger.log('Error sending message:', error);
-  }
+  // Paste data to target sheet
+  targetSheet.getRange(2, 1, numRows, numCols).setValues(data);
 }
-
-// Function to schedule a text message using the TextUS API
-function scheduleTextUsMessage(to, body, scheduled_at) {
-  // Set API endpoint
-  var apiUrl = 'https://next.textus.com//messages';
-
-  // Set authorization token
-  var token = 'TextUS API Token';
-
-  // Construct message body
-  var messageBody = {
-    to: to, // Recipient phone number
-    body: body, // Message body
-    scheduled_at: scheduled_at // Scheduled time for sending the message
-  };
-
-  // Convert message body to JSON string
-  var payload = JSON.stringify(messageBody);
-
-  // Set options for the HTTP request
-  var options = {
-    "method": "POST", // HTTP method
-    "contentType": "application/json", // Content type
-    "headers": {
-      "Accept": "application/vnd.textus+jsonld", // Accept header
-      "Authorization": "Bearer " + token // Authorization header with API token
-    },
-    "payload": payload // Payload containing the message data
-  };
-
-  // Make the HTTP request to schedule the message
-  var response = UrlFetchApp.fetch(apiUrl, options);
-
-  // Log the response
-  Logger.log(response.getContentText());
-}
+```
