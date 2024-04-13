@@ -1,5 +1,18 @@
 # Google Calendar to Google Sheets Looker Studio Integration
 
+## Table of Contents
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Flow Chart](#flow-chart)
+   - [Demo](#demo)
+4. [Video Tutorials](#video-tutorials)
+5. [Getting Started](#getting-started)
+   - [Setup Instructions](#setup-instructions)
+6. [Support](#support)
+7. [Calendar Data Extraction Script](#calendar-data-extraction-script)
+   - [Script Explanation](#script-explanation)
+   - [Explanation of copyDataToSheet2() Function](#explanation-of-copydatatosheet2-function)
+
 ## Overview
 
 This project aims to extract event data from Google Calendar and store it in a Google Sheets spreadsheet using Google Apps Script. The extracted data includes information such as Event Title, Start Date, End Date, Event Creator, Last Update, First Created, Activity Log, and Calendar ID. This allows for better accountability by tracking who created events and their last modifications.
